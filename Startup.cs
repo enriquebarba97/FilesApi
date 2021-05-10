@@ -11,6 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using FilesApi.Services;
+using FilesApi.Models;
+using Microsoft.Extensions.Options;
 
 namespace FilesApi
 {
@@ -26,6 +29,13 @@ namespace FilesApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<FilesDatabaseSettings>(
+            Configuration.GetSection(nameof(FilesDatabaseSettings)));
+
+            services.AddSingleton<IFilesDatabaseSettings>(sp =>
+            sp.GetRequiredService<IOptions<FilesDatabaseSettings>>().Value);
+
+            services.AddSingleton<FileService>();
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
