@@ -13,7 +13,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using FilesApi.Services;
 using FilesApi.Models;
+using FilesApi.Helpers;
 using Microsoft.Extensions.Options;
+using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace FilesApi
 {
@@ -29,6 +34,14 @@ namespace FilesApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var mapperConfig = new MapperConfiguration(mc =>
+            {
+                mc.AddProfile(new AutoMapperProfile());
+            });
+
+            IMapper mapper = mapperConfig.CreateMapper();
+            services.AddSingleton(mapper);
+
             services.Configure<FilesDatabaseSettings>(
             Configuration.GetSection(nameof(FilesDatabaseSettings)));
 
@@ -36,8 +49,42 @@ namespace FilesApi
             sp.GetRequiredService<IOptions<FilesDatabaseSettings>>().Value);
 
             services.AddSingleton<FileService>();
+            services.AddSingleton<UserService>();
 
             services.AddControllers();
+
+            var key = Encoding.ASCII.GetBytes(Configuration.GetSection("JwtKey").ToString());
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(x =>
+            {
+                x.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = context =>
+                    {
+                        var userService = context.HttpContext.RequestServices.GetRequiredService<UserService>();
+                        var userId = context.Principal.Identity.Name;
+                        var user = userService.GetByUsername(userId);
+                        if(user == null)
+                        {
+                            context.Fail("Unauthorized");
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "FilesApi", Version = "v1" });
@@ -57,6 +104,8 @@ namespace FilesApi
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
