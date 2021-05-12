@@ -7,6 +7,7 @@ using FilesApi.Helpers;
 using FilesApi.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FilesApi.Services
@@ -46,9 +47,19 @@ namespace FilesApi.Services
 
             _users.InsertOne(user);
 
+
             return user;
         }
 
+        public void Update(string id, User userIn) =>
+            _users.ReplaceOne(user => user.Id == id, userIn);
+        
+        public void AddSharedFile(string username, FileMetadata fileMetadata)
+        {
+            var filter = Builders<User>.Filter.Eq("username",username);
+            var addOperation = Builders<User>.Update.Push<FileMetadata>("shared",fileMetadata);
+            _users.UpdateOne(filter,addOperation);
+        }
         public TokenResponse Authenticate(string username, string password)
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))

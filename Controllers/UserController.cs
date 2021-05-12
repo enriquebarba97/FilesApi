@@ -25,6 +25,7 @@ namespace FilesApi.Controllers
             _mapper = mapper;
         }
 
+        [Authorize]
         [HttpGet]
         public IActionResult GetUsers()
         {
@@ -34,7 +35,7 @@ namespace FilesApi.Controllers
             return Ok(_userService.GetUsers());
         }
 
-        [HttpGet("{username}")]
+        [HttpGet("{username}", Name = "GetUser")]
         public IActionResult GetUser(string username)
         {
             var user = _userService.GetByUsername(username);
@@ -52,7 +53,7 @@ namespace FilesApi.Controllers
             {
                 // save 
                 _userService.Create(user, userDto.Password);
-                return Ok();
+                return Created("GetUser", user);
             } 
             catch(AppException ex)
             {
