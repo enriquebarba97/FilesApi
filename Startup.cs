@@ -19,6 +19,9 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using MongoDB.Driver;
+using Microsoft.Extensions.Logging.Configuration;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace FilesApi
 {
@@ -39,11 +42,17 @@ namespace FilesApi
                 mc.AddProfile(new AutoMapperProfile());
             });
 
+            services.Configure<FormOptions>(x => {
+            x.MemoryBufferThreshold = Int32.MaxValue;
+            x.ValueLengthLimit = int.MaxValue;
+            x.MultipartBodyLengthLimit = int.MaxValue; // In case of multipart
+            });
+            
             IMapper mapper = mapperConfig.CreateMapper();
             services.AddSingleton(mapper);
 
-            services.Configure<FilesDatabaseSettings>(
-            Configuration.GetSection(nameof(FilesDatabaseSettings)));
+            var configInfo = Configuration.GetSection(nameof(FilesDatabaseSettings));
+            services.Configure<FilesDatabaseSettings>(configInfo);
 
             services.AddSingleton<IFilesDatabaseSettings>(sp =>
             sp.GetRequiredService<IOptions<FilesDatabaseSettings>>().Value);
@@ -89,6 +98,40 @@ namespace FilesApi
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "FilesApi", Version = "v1" });
             });
+
+            populateDatabase(configInfo["ConnectionString"],configInfo["DatabaseName"],configInfo["UsersCollectionName"], configInfo["FilesMetadataCollectionName"]);
+        }
+
+        private void populateDatabase(string connection, string databaseName, string UsersCollection, string filesMetadataCollection)
+        {
+            var client = new MongoClient(connection);
+            var database = client.GetDatabase(databaseName);
+
+            var users = database.GetCollection<User>(UsersCollection);
+
+            if(users.Find(user => true).ToList().Count == 0){
+                var indexModelUsername = new CreateIndexModel<User>(Builders<User>.IndexKeys.Ascending(u => u.Username));
+                users.Indexes.CreateOne(indexModelUsername);
+
+                byte[] passwordHash, passwordSalt;
+
+                UserService.CreatePasswordHash("default", out passwordHash, out passwordSalt);
+
+                var user = new User();
+                user.FirstName = "Default";
+                user.LastName = "Profile";
+                user.Username = "default";
+                user.PasswordHash = passwordHash;
+                user.PasswordSalt = passwordSalt;
+
+                users.InsertOne(user);
+
+                var filesMetadata = database.GetCollection<FileMetadata>(filesMetadataCollection);
+
+                var indexModelFiles = new CreateIndexModel<FileMetadata>(Builders<FileMetadata>.IndexKeys.Ascending(fm => fm.filename).Ascending(fm => fm.owner));
+                filesMetadata.Indexes.CreateOne(indexModelFiles);
+            }
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

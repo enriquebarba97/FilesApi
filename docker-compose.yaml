@@ -1,0 +1,32 @@
+version: '2.2'
+services:
+  backend:
+    container_name: files-api
+    image: files-api
+    networks:
+      network1:
+        aliases:
+          - backend
+    environment: 
+        - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - '8014:80'
+    depends_on:
+      - mongodb
+  mongodb:
+    container_name: mongo
+    image: mongo
+    networks:
+      network1:
+        aliases:
+          - mongo
+    ports:
+        - '27017:27017'
+    volumes:
+      - 'db_volume:/data/db'
+networks:
+  network1:
+    external: false
+volumes:
+  db_volume: null
+      
