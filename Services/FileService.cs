@@ -5,6 +5,8 @@ using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 using FilesApi.Models;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Collections.Generic;
 
 namespace FilesApi.Services
 {
@@ -24,7 +26,7 @@ namespace FilesApi.Services
             bucket = new GridFSBucket(database);
         }
 
-        public void Create(string username, IFormFile file)
+        public FileMetadata Create(string username, IFormFile file)
         {
             var options = new GridFSUploadOptions
             {
@@ -39,19 +41,32 @@ namespace FilesApi.Services
             
             var id = bucket.UploadFromStream(filename, file.OpenReadStream(), options);
 
-            var currentData = filesMetadata.Find<FileMetadata>(fd =>fd.filename == filename && fd.owner == username).FirstOrDefault();
+            var currentData = GetFileMetadata(username, filename);
 
             if(currentData == null){
-                var fileMetadata = new FileMetadata(filename,username);
-                filesMetadata.InsertOne(fileMetadata);
+                currentData = new FileMetadata(filename,username);
+                filesMetadata.InsertOne(currentData);
             }else{
-                var filter = Builders<FileMetadata>.Filter.Eq("_id", currentData.id);
                 var update = Builders<FileMetadata>.Update.Set("revisions", currentData.revisions + 1);
 
                 filesMetadata.UpdateOne(fm => fm.id == currentData.id, update);
             }
+            return currentData;
         }
 
+        public List<FileMetadata> GetOwnFiles(string username)
+        {
+            return filesMetadata.Find(fm => fm.owner == username).ToList();
+        }
+
+        public List<FileMetadata> GetSharedFiles(string username)
+        {
+            return filesMetadata.Find(fm => fm.sharedWith.Contains(username)).ToList();
+        }
+        public FileMetadata GetFileMetadata(string owner, string filename)
+        {
+            return filesMetadata.Find<FileMetadata>(fd =>fd.filename == filename && fd.owner == owner).FirstOrDefault();
+        }
         public byte[] GetFile(string username, string filename)
         {
             var filter = Builders<GridFSFileInfo>.Filter.And(
@@ -62,21 +77,61 @@ namespace FilesApi.Services
             var sort = Builders<GridFSFileInfo>.Sort.Descending(x => x.UploadDateTime);
             var findOptions = new GridFSFindOptions
                 {
-                    Limit = 5,
                     Sort = sort
                 };
-            using (var cursor = bucket.Find(filter, findOptions))
-            {
-                var filesFound = cursor.ToList();
-                var fileInfo = filesFound.FirstOrDefault();
+            var cursor = bucket.Find(filter, findOptions);
+            
+            var filesFound = cursor.ToList();
+            var fileInfo = filesFound.FirstOrDefault();
 
-                if(fileInfo != null){
-                    var file = bucket.DownloadAsBytes(fileInfo.Id);
-                    return file;
-                }
+            if(fileInfo != null){
+                var file = bucket.DownloadAsBytes(fileInfo.Id);
+                return file;
             }
 
             return null;
+        }
+
+        public void DeleteFile(string username, string filename)
+        {
+            var currentData = filesMetadata.Find<FileMetadata>(fd =>fd.filename == filename && fd.owner == username).FirstOrDefault();
+
+            var filter = Builders<GridFSFileInfo>.Filter.And(
+                Builders<GridFSFileInfo>.Filter.Eq(x => x.Metadata["owner"], username),
+                Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, filename)
+            );
+
+            var sort = Builders<GridFSFileInfo>.Sort.Descending(x => x.UploadDateTime);
+            var findOptions = new GridFSFindOptions
+                {
+                    Sort = sort
+                };
+            var cursor = bucket.Find(filter, findOptions);
+            
+            var filesFound = cursor.ToList();
+
+            foreach(var fileInfo in filesFound){
+                bucket.Delete(fileInfo.Id);
+            }
+
+            filesMetadata.DeleteOne(fm => fm.id == currentData.id);
+
+        }
+
+        public FileMetadata UpdateShares(string username, string filename, string share)
+        {
+            var currentData = filesMetadata.Find<FileMetadata>(fd =>fd.filename == filename && fd.owner == username).FirstOrDefault();
+
+            if(currentData == null)
+                return null;
+
+            var update = Builders<FileMetadata>.Update.Push("sharedWith", share);
+
+            filesMetadata.UpdateOne(fm => fm.id == currentData.id, update);
+            currentData.sharedWith.Add(share);
+
+            return currentData;
+
         }
     }
 }

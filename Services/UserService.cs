@@ -92,14 +92,14 @@ namespace FilesApi.Services
 
             return new TokenResponse(
                 user.Id,
-                user.Username,
                 user.FirstName,
                 user.LastName,
+                user.Username,
                 tokenString
             );
         }
 
-        private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
+        public static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
             if (password == null) throw new ArgumentNullException("password");
             if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Value cannot be empty or whitespace only string.", "password");
