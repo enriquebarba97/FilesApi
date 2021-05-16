@@ -143,7 +143,12 @@ namespace FilesApi
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "FilesApi v1"));
             }
-
+			
+			app.UseCors(builder => builder
+			.AllowAnyOrigin()
+			.AllowAnyMethod()
+			.AllowAnyHeader());   
+	 
             app.UseHttpsRedirection();
 
             app.UseRouting();
