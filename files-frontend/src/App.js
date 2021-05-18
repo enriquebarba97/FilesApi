@@ -9,6 +9,7 @@ import Register from "./components/register.component";
 import Home from "./components/home.component";
 import Profile from "./components/profile.component";
 import Files from "./components/files.component";
+import Shared from "./components/shared.component";
 
 class App extends Component {
   constructor(props) {
@@ -103,6 +104,7 @@ class App extends Component {
             <Route exact path="/register" component={Register} />
             <Route exact path="/profile" component={Profile} />
             <Route exact path="/files" component={Files} />
+            <Route exact path="/shared" component={Shared} />
           </Switch>
         </div>
       </div>

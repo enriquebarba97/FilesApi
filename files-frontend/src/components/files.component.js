@@ -113,10 +113,7 @@ export default class Files extends Component {
             },
             error => {
               this.setState({
-                message:
-                  (error.response && error.response.data) ||
-                  error.message ||
-                  error.toString()
+                message: "Something went wrong"
               });
             }
           );
