@@ -125,7 +125,7 @@ namespace FilesApi.Services
             if(currentData == null)
                 return null;
 
-            var update = Builders<FileMetadata>.Update.Push("sharedWith", share);
+            var update = Builders<FileMetadata>.Update.AddToSet("sharedWith", share);
 
             filesMetadata.UpdateOne(fm => fm.id == currentData.id, update);
             currentData.sharedWith.Add(share);

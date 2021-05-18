@@ -84,7 +84,7 @@ namespace FilesApi.Controllers
             return NoContent();
         }
         [Authorize]
-        [HttpPut("{filename}/share")]
+        [HttpGet("{filename}/share")]
         public ActionResult<string> shareFile(string username, string filename, [Required] string share)
         {
             var owner = userService.GetByUsername(HttpContext.User.Identity.Name);
