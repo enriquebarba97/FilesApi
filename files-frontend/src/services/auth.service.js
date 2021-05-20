@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://apifiles.enriquexperiments.com/api/user/";
+const API_URL = process.env.REACT_APP_API_URL + "user/";
 
 class AuthService {
   login(username, password) {

@@ -1,7 +1,7 @@
 import axios from "axios";
 import authHeader from "./auth-header";
 
-const API_URL = "https://apifiles.enriquexperiments.com/api/";
+const API_URL = process.env.REACT_APP_API_URL;
 
 
 class FileService {
