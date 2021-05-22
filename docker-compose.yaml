@@ -2,7 +2,7 @@ version: '2.2'
 services:
   frontend:
     container_name: files-frontend
-    image: files-frontend
+    image: enriquebarba97/files-frontend
     networks:
       network1:
         aliases:
@@ -11,7 +11,7 @@ services:
       - '1337:80'
   backend:
     container_name: files-api
-    image: files-api
+    image: enriquebarba97/files-api
     networks:
       network1:
         aliases:
