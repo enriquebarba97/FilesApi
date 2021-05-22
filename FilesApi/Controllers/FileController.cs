@@ -60,7 +60,7 @@ namespace FilesApi.Controllers
 
         [Authorize]
         [HttpGet("{filename}", Name = "GetFile")]
-        public IActionResult GetFile(string username, string filename)
+        public IActionResult GetFile(string username, string filename, int revision)
         {
             var fileMeta =fileService.GetFileMetadata(username, filename);
 
@@ -70,8 +70,11 @@ namespace FilesApi.Controllers
             var currentUser = HttpContext.User.Identity.Name;
             if(fileMeta.owner != currentUser && !fileMeta.sharedWith.Contains(currentUser))
                 return Forbid();
+            
+            if(revision == 0 || revision < -1 || revision > fileMeta.revisions)
+                return BadRequest();
 
-            var file = fileService.GetFile(username, filename);
+            var file = fileService.GetFile(username, filename, revision);
 
             return File(file, "application/octet-stream", filename);
         }

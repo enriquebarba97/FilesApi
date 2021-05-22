@@ -95,8 +95,8 @@ export default class Files extends Component {
         });
       }
 
-    downloadFile(filename){
-        FileService.getFile(filename,this.state.currentUser.username).then(
+    downloadFile(filename,revision){
+        FileService.getFile(filename,this.state.currentUser.username,revision).then(
             response => {
                 const blob = new Blob([response.data]);
                 console.log(blob.size);
@@ -170,6 +170,8 @@ export default class Files extends Component {
   
     render() {
         const {files,currentUser,message,error,shareForm} = this.state;
+
+        
       return (
         <div className="container">
             {currentUser && 
@@ -213,21 +215,26 @@ export default class Files extends Component {
                 <div className="row">
                 <div className="col-10">{file.filename}</div>
                 <div className="col-2 btn-group">
-                <button onClick={() => this.downloadFile(file.filename)} className="btn btn-primary">Download</button>
+                <button onClick={() => this.downloadFile(file.filename,-1)} className="btn btn-primary">Download</button>
                 <button type="button" className="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     <span className="sr-only">Toggle Dropdown</span>
                 </button>
-                <div className="dropdown-menu">
-                    {/* <button className="dropdown-item" type="button" data-toggle="collapse" data-target={"#file" + index} aria-expanded="false" aria-controls={"file" + index}>Share</button> */}
-                    <button className="dropdown-item" type="button" onClick={() => this.setShareForm(index)}>Share</button>
-                    <div className="dropdown-divider"></div>
-                    <button className="dropdown-item" onClick={(e) => { if (window.confirm('Are you sure you wish to delete this file?')) this.deleteFile(file.filename) }}
-                    >Delete file</button>
+                <ul className="dropdown-menu multi-level">
+                <li class="dropdown-submenu">
+                            <button class="dropdown-item dropdown-toggle" data-toggle="dropdown">Revisions</button>
+                            <ul class="dropdown-menu">
+                                {Array.from({length: file.revisions}, (_, i) => i + 1).reverse().map(version =>
+                                <li><button className="dropdown-item" type="button" onClick={() => this.downloadFile(file.filename, version)}>{}Version {version}</button></li>)}
+                            </ul>
+                        </li>
+                    <li><button className="dropdown-item" type="button" onClick={() => this.setShareForm(index)}>Share</button></li>
+                    <li className="dropdown-divider"></li>
+                    <li><button className="dropdown-item" onClick={(e) => { if (window.confirm('Are you sure you wish to delete this file?')) this.deleteFile(file.filename) }}
+                    >Delete file</button></li>
+                </ul>
                 </div>
                 </div>
                 </div>
-                </div>
-                {/* <div className="collapse" id={"file"+index}> */}
                 {shareForm === index && <div className="row">
                 <div className="col-5 card card-body">
                     <Form onSubmit={this.onShareSubmit} ref={c => {this.form = c;}}>

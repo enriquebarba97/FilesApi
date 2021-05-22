@@ -67,14 +67,14 @@ namespace FilesApi.Services
         {
             return filesMetadata.Find<FileMetadata>(fd =>fd.filename == filename && fd.owner == owner).FirstOrDefault();
         }
-        public byte[] GetFile(string username, string filename)
+        public byte[] GetFile(string username, string filename, int revision)
         {
             var filter = Builders<GridFSFileInfo>.Filter.And(
                 Builders<GridFSFileInfo>.Filter.Eq(x => x.Metadata["owner"], username),
                 Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, filename)
             );
 
-            var sort = Builders<GridFSFileInfo>.Sort.Descending(x => x.UploadDateTime);
+            var sort = Builders<GridFSFileInfo>.Sort.Ascending(x => x.UploadDateTime);
             var findOptions = new GridFSFindOptions
                 {
                     Sort = sort
@@ -82,7 +82,10 @@ namespace FilesApi.Services
             var cursor = bucket.Find(filter, findOptions);
             
             var filesFound = cursor.ToList();
-            var fileInfo = filesFound.FirstOrDefault();
+            var fileInfo = filesFound.LastOrDefault();
+
+            if(revision!=-1)
+                fileInfo = filesFound[revision-1];
 
             if(fileInfo != null){
                 var file = bucket.DownloadAsBytes(fileInfo.Id);

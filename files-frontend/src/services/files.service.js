@@ -13,8 +13,8 @@ class FileService {
         return axios.get(API_URL + username + "/files/shared", { headers: {'Authorization': authHeader()}});
     }
 
-    getFile(filename, username){
-        return axios.get(API_URL + username + "/files/"+ filename, { headers: {'Authorization': authHeader()}, responseType: 'blob'});
+    getFile(filename, username, fileRevision){
+        return axios.get(API_URL + username + "/files/"+ filename, {params:{revision:fileRevision}, headers: {'Authorization': authHeader()}, responseType: 'blob'});
     }
 
     uploadFile(file, username){
