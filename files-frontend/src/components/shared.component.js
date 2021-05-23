@@ -74,7 +74,7 @@ export default class Shared extends Component {
               <li key={file.filename} className="list-group-item justify-content-between align-items-center">
                 <div className="container">
                 <div className="row">
-                <div className="col-10">{file.filename}</div>
+                <div className="col-10">{file.filename} - {file.owner}</div>
                 <div className="col-2 btn-group">
                 <button onClick={() => this.downloadFile(file.filename,file.owner)} className="btn btn-primary">Download</button>
                 </div>
